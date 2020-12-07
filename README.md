@@ -1,6 +1,16 @@
 # typing-game
 Gotta get high score by correct typed word.
 
+## scripts
+- npm run start
+  - 개발서버 실행
+  - 실행시마다 /public 폴더 비움
+- npm run test
+  - 테스트 실행
+- npm run build
+  - /public 폴더에 결과물 생성
+  - 빌드된 파일들을 서버에서 실행 시켜야 정상 실행됩니다.
+
 ### 개발의도
 - Web API를 사용
   - WebComponent, Hisoty
