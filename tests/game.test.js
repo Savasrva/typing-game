@@ -30,9 +30,7 @@ describe('Game test', () => {
 
     test('Set a data?', async () => {
         await game._setData();
-        expect(game.score).toBe(2);
         expect(game.dataList).toEqual(data);
-        expect(game.presentData).toEqual(data[0]);
     });
 
     test('Deep copy data', () => {
@@ -50,19 +48,26 @@ describe('Game test', () => {
         expect(wasteTime).toBeCalledTimes(1);
     });
 
-    test('Call StartAndReset?', async () => {
+    test('Toggle Input And Button', () => {
+        const value = game.buttonEle.textContent;
+        game._toggleInputAndButton();
+        expect(value).not.toBe(game.buttonEle.textContent);
+    });
+
+    test('Call Start and Reset?', async () => {
         await game._setData();
         game._render();
+        game._toggleInputAndButton();
 
         expect(game.buttonEle.textContent).not.toBe('초기화');
 
-        game.root.querySelector('button').click();
+        game._start();
         expect(game.buttonEle.textContent).toBe('초기화');
 
-        game._startAndReset = jest.fn();
+        game._reset = jest.fn();
         game._contentsChange = jest.fn();
         game.root.querySelector('button').click();
-        expect(game._startAndReset).toHaveBeenCalledTimes(1);
+        expect(game._reset).toHaveBeenCalledTimes(1);
     });
 
     test('Call timer and killTimer?', () => {
@@ -70,7 +75,7 @@ describe('Game test', () => {
         game.presentData = game._simpleDeepCopy(game.dataList)[0];
         game.score = game.dataList.length;
         game._render();
-        game._startAndReset();
+        game._start();
         
         expect(game.timerVar).toBeTruthy();
 
@@ -80,16 +85,22 @@ describe('Game test', () => {
 
     test('Submited input value to match text?', async () => {
         await game._setData();
+        game._start();
         game._render();
         game.inputEle.value = 'hello';
         game._nextStep = jest.fn();
         const e = {preventDefault: function () {}};
         game._submit(e);
         expect(game._nextStep).toHaveBeenCalledTimes(1);
+    });
 
+    test('Submited input value to match text?', async () => {
+        await game._setData();
+        game._render();
+        const e = {preventDefault: function () {}};
         game.inputEle.value = 'hey';
         game._submit(e);
-        expect(game._nextStep).not.toHaveBeenCalledTimes(2);
+        expect(game.paraEle.textContent).not.toBeFalsy();
     });
 
     test('Called componentLeave when finished', async () => {

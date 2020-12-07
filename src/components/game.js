@@ -1,4 +1,7 @@
 const REQUEST_WORDS_URL = 'https://my-json-server.typicode.com/kakaopay-fe/resources/words';
+const SUCCESS = 'SUCCESS';
+const FAILED = 'FAILED';
+const DESCRIPTION = '시작버튼을 클릭하면 게임이 시작됩니다.';
 
 class Game extends HTMLElement {
     constructor () {
@@ -11,15 +14,15 @@ class Game extends HTMLElement {
         this.startTime;
         this.timesList = [];
         this.root = this.attachShadow({mode: 'open'});
+        this.formEle = document.createElement('form');
+        this.headerEle = document.createElement('header');
         this.textEle = document.createElement('h3');
-        this.textEle.textContent = '시작버튼을 클릭하면 게임이 시작됩니다.';
         this.secondEle = document.createElement('h4');
         this.scoreEle = document.createElement('h4');
         this.inputEle = document.createElement('input');
-        this.inputEle.disabled = true;
         this.inputEle.placeholder = '이곳에 입력하세요.';
+        this.paraEle = document.createElement('p');
         this.buttonEle = document.createElement('button');
-        this.buttonEle.textContent = '시작';
         this._setData = this._setData.bind(this);
         this._submit = this._submit.bind(this);
         this._secondChange = this._secondChange.bind(this);
@@ -30,7 +33,8 @@ class Game extends HTMLElement {
         this._setStartTime = this._setStartTime.bind(this);
         this._wasteTime = this._wasteTime.bind(this);
         this._nextStep = this._nextStep.bind(this);
-        this._startAndReset = this._startAndReset.bind(this);
+        this._toggleInputAndButton = this._toggleInputAndButton.bind(this);
+        this._start = this._start.bind(this);
         this._simpleDeepCopy = this._simpleDeepCopy.bind(this);
         this._componentLeave = this._componentLeave.bind(this);
     }
@@ -38,6 +42,7 @@ class Game extends HTMLElement {
     async connectedCallback () {
         await this._setData();
         this._render();
+        this._toggleInputAndButton();
     }
 
     disconnectedCallback () {
@@ -46,14 +51,17 @@ class Game extends HTMLElement {
 
     async _setData () {
         this.dataList = await (await fetch(REQUEST_WORDS_URL)).json();
-        this.presentData = this._simpleDeepCopy(this.dataList)[0];
-        this.score = this.dataList.length;
     }
 
     _submit (e) {
         e.preventDefault();
         if (this.inputEle.value === this.presentData.text) {
-            this._nextStep('SUCCESS');
+            this._nextStep(SUCCESS);
+        } else {
+            this.paraEle.textContent = '정답을 입력해주세요.';
+            setTimeout(() => {
+                this.paraEle.textContent = '';
+            }, 1000);
         }
     }
 
@@ -75,15 +83,18 @@ class Game extends HTMLElement {
 
     _render () {
         const container = document.createElement('div');
-        const form = document.createElement('form');
-        const header = document.createElement('header');
-        form.addEventListener('submit', this._submit.bind(this));
         this.buttonEle.addEventListener('click', () => {
-            this._startAndReset();
+            if (this.buttonEle.textContent === '시작') {
+                this._start();
+            } else {
+                this._reset();
+            }
         });
-        header.append(this.secondEle, this.scoreEle);
-        form.append(this.textEle, this.inputEle);
-        container.append(header, form, this.buttonEle);
+        this.formEle.addEventListener('submit', this._submit.bind(this));
+        this.textEle.textContent = DESCRIPTION;
+        this.headerEle.append(this.secondEle, this.scoreEle);
+        this.formEle.appendChild(this.textEle);
+        container.append(this.headerEle, this.formEle, this.buttonEle);
         this.root.innerHTML = `
             <style>
             header {
@@ -107,6 +118,11 @@ class Game extends HTMLElement {
                 border: 2px solid #ea9d9d;
                 border-radius: 5px;
             }
+            p {
+                height: 15px;
+                font: 900 12px;
+                color: red;
+            }
             </style>
         `;
         this.root.appendChild(container);
@@ -116,7 +132,7 @@ class Game extends HTMLElement {
         this.timerVar = setInterval(() => {
             if (this.presentData.second <= 1) {
                 this.score -= 1;
-                this._nextStep('FAILED');
+                this._nextStep(FAILED);
                 return;
             }
             this.presentData.second -= 1;
@@ -140,7 +156,7 @@ class Game extends HTMLElement {
     }
 
     _nextStep (flag) {
-        if (flag === 'SUCCESS') {
+        if (flag === SUCCESS) {
             this.timesList.push(this._wasteTime());
         }
         if (this.index === (this.dataList.length - 1)) {
@@ -151,11 +167,30 @@ class Game extends HTMLElement {
         this._contentsChange();
     }
 
-    _startAndReset () {
-        this._setData();
-        this.inputEle.disabled = false;
-        this.buttonEle.textContent = '초기화';
+    _toggleInputAndButton () {
+        this.inputEle.disabled = this.inputEle.disabled == true ? false : true;
+        this.inputEle.value = '';
+        this.buttonEle.textContent = this.buttonEle.textContent === '시작' ? '초기화' : '시작';
+    }
+
+    _start () {
+        this.formEle.append(this.inputEle, this.paraEle);
+        this.presentData = this._simpleDeepCopy(this.dataList)[0];
+        this.score = this.dataList.length;
+        this._toggleInputAndButton();
         this._contentsChange();
+    }
+
+    _reset () {
+        this._killTimer();
+        this._toggleInputAndButton();
+        this.textEle.textContent = DESCRIPTION;
+        this.score = 0;
+        this.presentData = {};
+        this.secondEle.textContent = '';
+        this.scoreEle.textContent = '';
+        this.root.querySelector('input').remove();
+        this.root.querySelector('p').remove();
     }
 
     _simpleDeepCopy (object) {
