@@ -1,0 +1,10 @@
+{
+    "presets": [
+        [
+            "@babel/preset-env", {
+                "targets": {"chrome": "55"}, // chrome version
+            }
+        ]
+    ],
+    "plugins": []
+}

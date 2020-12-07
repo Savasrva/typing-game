@@ -1,3 +1,5 @@
+const REQUEST_WORDS_URL = 'https://my-json-server.typicode.com/kakaopay-fe/resources/words';
+
 class Game extends HTMLElement {
     constructor () {
         super();
@@ -8,8 +10,7 @@ class Game extends HTMLElement {
         this.timerVar;
         this.startTime;
         this.timesList = [];
-        this.root;
-        this._shadowRootStyle();
+        this.root = this.attachShadow({mode: 'open'});
         this.textEle = document.createElement('h3');
         this.textEle.textContent = '시작버튼을 클릭하면 게임이 시작됩니다.';
         this.secondEle = document.createElement('h4');
@@ -19,26 +20,70 @@ class Game extends HTMLElement {
         this.inputEle.placeholder = '이곳에 입력하세요.';
         this.buttonEle = document.createElement('button');
         this.buttonEle.textContent = '시작';
-
+        this._setData = this._setData.bind(this);
+        this._submit = this._submit.bind(this);
+        this._secondChange = this._secondChange.bind(this);
+        this._contentsChange = this._contentsChange.bind(this);
+        this._render = this._render.bind(this);
+        this._timer = this._timer.bind(this);
+        this._killTimer = this._killTimer.bind(this);
+        this._setStartTime = this._setStartTime.bind(this);
+        this._wasteTime = this._wasteTime.bind(this);
+        this._nextStep = this._nextStep.bind(this);
+        this._startAndReset = this._startAndReset.bind(this);
+        this._simpleDeepCopy = this._simpleDeepCopy.bind(this);
+        this._componentLeave = this._componentLeave.bind(this);
     }
     
-    connectedCallback () {
-        this._fetch().then(dataList => {
-            this.dataList = dataList;
-            this._init();
-            return this._draw();
-        })
-        .then(template => {
-            this._render(template);
-        });
+    async connectedCallback () {
+        await this._setData();
+        this._render();
     }
 
     disconnectedCallback () {
         this._killTimer();
     }
 
-    _shadowRootStyle () {
-        this.root = this.attachShadow({mode: 'open'});
+    async _setData () {
+        this.dataList = await (await fetch(REQUEST_WORDS_URL)).json();
+        this.presentData = this._simpleDeepCopy(this.dataList)[0];
+        this.score = this.dataList.length;
+    }
+
+    _submit (e) {
+        e.preventDefault();
+        if (this.inputEle.value === this.presentData.text) {
+            this._nextStep('SUCCESS');
+        }
+    }
+
+    _secondChange () {
+        this.secondEle.textContent = `남은 시간: ${this.presentData.second}초`;
+    }
+
+    _contentsChange () {
+        this.textEle.textContent = this.presentData.text;
+        this.scoreEle.textContent = `점수: ${this.score}점`;
+        this.inputEle.focus();
+        this.inputEle.value = '';
+
+        this._secondChange();
+        this._setStartTime();
+        this._killTimer();
+        this._timer();
+    }
+
+    _render () {
+        const container = document.createElement('div');
+        const form = document.createElement('form');
+        const header = document.createElement('header');
+        form.addEventListener('submit', this._submit.bind(this));
+        this.buttonEle.addEventListener('click', () => {
+            this._startAndReset();
+        });
+        header.append(this.secondEle, this.scoreEle);
+        form.append(this.textEle, this.inputEle);
+        container.append(header, form, this.buttonEle);
         this.root.innerHTML = `
             <style>
             header {
@@ -64,67 +109,7 @@ class Game extends HTMLElement {
             }
             </style>
         `;
-    }
-
-    _init () {
-        this.presentData = this._simpleDeepCopy(this.dataList)[0];
-        this.score = this.dataList.length;
-        this.index = 0;
-        this.timesList = [];
-        this.startTime = '';
-        this._killTimer();
-    }
-
-    _fetch () {
-        return window.fetch('https://my-json-server.typicode.com/kakaopay-fe/resources/words')
-            .then(function(response) {
-                return response.json();
-            });
-    }
-
-    _draw () {
-        const container = document.createElement('div');
-        const form = document.createElement('form');
-        const header = document.createElement('header');
-        form.addEventListener('submit', this._submit.bind(this));
-        this.buttonEle.addEventListener('click', () => {
-            this._startAndReset();
-        });
-        header.append(this.secondEle, this.scoreEle);
-        form.append(this.textEle, this.inputEle);
-        container.append(header, form, this.buttonEle);
-        return container;
-    }
-
-    _submit (e) {
-        e.preventDefault();
-        if (this.inputEle.value === this.presentData.text) {
-            this._nextStep('SUCCESS');
-        }
-    }
-
-    _redraw () {
-        this._contentsChange();
-    }
-
-    _secondChange () {
-        this.secondEle.textContent = `남은 시간: ${this.presentData.second}초`;
-    }
-
-    _contentsChange () {
-        this.textEle.textContent = this.presentData.text;
-        this.scoreEle.textContent = `점수: ${this.score}점`;
-        this.inputEle.focus();
-        this.inputEle.value = '';
-
-        this._secondChange();
-        this._setStartTime();
-        this._killTimer();
-        this._timer();
-    }
-
-    _render (template) {
-        this.root.appendChild(template);
+        this.root.appendChild(container);
     }
 
     _timer () {
@@ -140,7 +125,10 @@ class Game extends HTMLElement {
     }
 
     _killTimer () {
-        if (this.timerVar) clearInterval(this.timerVar);
+        if (this.timerVar) {
+            clearInterval(this.timerVar);
+            this.timerVar = '';
+        }
     }
 
     _setStartTime () {
@@ -164,7 +152,7 @@ class Game extends HTMLElement {
     }
 
     _startAndReset () {
-        this._init();
+        this._setData();
         this.inputEle.disabled = false;
         this.buttonEle.textContent = '초기화';
         this._contentsChange();

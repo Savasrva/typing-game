@@ -7,6 +7,12 @@ class Score extends HTMLElement {
         this.buttonEle.addEventListener('click', () => {
             this._componentLeave();
         });
+        this.state = history.state || {score: 0, timesList: []};
+
+        this._render = this._render.bind(this);
+        this._completeOrFail = this._completeOrFail.bind(this);
+        this._averageTime = this._averageTime.bind(this);
+        this._componentLeave = this._componentLeave.bind(this);
     }
 
     connectedCallback () {
@@ -26,7 +32,7 @@ class Score extends HTMLElement {
                 }    
             </style>
             <h3>${this._completeOrFail()}</h3>
-            <h3>당신의 점수는 ${history.state.score}점입니다.</h2>
+            <h3>당신의 점수는 ${this.state.score}점입니다.</h2>
             <h5>단어당 평균 답변 시간은 ${this._averageTime()}초입니다.</h3>
             <h6>틀린 문제의 소요시간은 평균시간에 포함되지 않습니다.</h5>
         `;
@@ -34,11 +40,11 @@ class Score extends HTMLElement {
     }
 
     _completeOrFail () {
-        return history.state.score === 0 ? 'Mission Fail!' : 'Mission Complete!';
+        return this.state.score === 0 ? 'Mission Fail!' : 'Mission Complete!';
     }
 
     _averageTime () {
-        const timesList = history.state.timesList;
+        const timesList = this.state.timesList;
         if (timesList.length === 0) {
             return 0;
         }

@@ -1,8 +1,8 @@
-const HtmlWebpackPlugin = require('html-webpack-plugin')
-const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-const { CleanWebpackPlugin } = require('clean-webpack-plugin')
-
-const { resolve } = require('path')
+const { resolve } = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 module.exports = {
     entry: './src/app.js',
@@ -12,6 +12,7 @@ module.exports = {
     },
     optimization: {
         minimize: true,
+        minimizer: [new CssMinimizerPlugin()],
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -37,7 +38,10 @@ module.exports = {
       port: 3000,
     },
     resolve: {
-        modules: ['node_modules'],
-        extensions: ['.js', '.json', '.jsx', '.css'],
+      alias: {
+        '@': resolve(__dirname, 'src'),
       },
-}
+      modules: ['node_modules'],
+      extensions: ['.js', '.json', '.jsx', '.css'],
+    },
+};

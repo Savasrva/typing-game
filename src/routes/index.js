@@ -1,5 +1,5 @@
-import Game from '../components/game';
-import Score from '../components/score';
+import Game from '@/components/game';
+import Score from '@/components/score';
 
 function Route(url) {
     switch (url) {
@@ -11,7 +11,6 @@ function Route(url) {
             return new Game();
     }
 };
-
 
 Route.push = function(component, data, url) {
     history.pushState(data, '', url);
